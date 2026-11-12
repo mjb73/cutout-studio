@@ -1,0 +1,41 @@
+{
+  "port": 7887,
+  "backends": [
+    {
+      "name": "main",
+      "label": "ComfyUI 8188 (main stack)",
+      "host": "http://127.0.0.1:8188",
+      "dir": "~/ComfyUI",
+      "wrapper": ""
+    }
+  ],
+  "ckpt": "sam3.1_multiplex_fp16.safetensors",
+  "node": "SAM3_Detect",
+  "data_dir": "data",
+  "export_dir": "~/Pictures/cutout-studio",
+  "chips": [
+    "subject",
+    "person",
+    "face",
+    "hair",
+    "skin",
+    "clothing",
+    "top",
+    "dress",
+    "background",
+    "sky",
+    "mountain",
+    "tree",
+    "building",
+    "product",
+    "animal",
+    "car",
+    "text"
+  ],
+  "_note": "backends: the ComfyUI instances this panel may cut out with. 'host' must answer /system_stats; 'dir' is that ComfyUI's folder (used to find models and to start it); 'wrapper' is an optional launch script. The first backend that has the SAM3 checkpoint in its models folder is used. 'ai_engine' is the generator port/host for the Generate tab.",
+  "ai_engine": {
+    "host": "http://127.0.0.1:7866",
+    "port": 7866,
+    "start": ""
+  }
+}

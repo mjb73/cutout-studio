@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en" data-theme="photocraft">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PhotoCraft AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/styles.css?v=14">
+</head>
+<body class="compact" data-tab="generate">
+<div id="app">
+  <!-- One banner, not two: the window title bar already reads "PhotoCraft AI", so this strip is a
+       toolbar — what the panel is doing, which engine is behind it, and the two actions. -->
+  <header id="topbar">
+    <span class="brand-sub" id="brandsub">make · cut out</span>
+    <!-- Frameless (the split column) has no window title of its own, so the strip carries the name
+         and a close control; in a browser tab both stay hidden. -->
+    <span class="wintitle" id="winname">PhotoCraft AI</span>
+    <div class="topbar-actions">
+      <button class="tbtn" id="previewbtn" title="Show the image preview">Preview</button>
+      <button class="tbtn" id="clearbtn" title="Forget the image, the mask and the PhotoCraft link">Clear</button>
+      <!-- One press, no questions: what PhotoCraft has open goes back beside the picture it came
+           from with the next version number on the end. -->
+      <button class="tbtn primary" id="quickexportbtn"
+              title="Save the picture PhotoCraft has open back where it came from — next version number">Quick Export</button>
+      <button class="tbtn" id="winclose" title="Close this window">✕</button>
+    </div>
+  </header>
+
+  <nav id="tabs">
+    <!-- Generate first: it is the tab that is used, Cutout is the occasional one. -->
+    <button class="tab active" data-tab="generate">Generate</button>
+    <button class="tab" data-tab="cutout">Cutout</button>
+  </nav>
+
+  <div id="main">
+    <section id="stage-wrap">
+      <div id="stage-bar">
+        <div class="seg" id="viewseg">
+          <button data-view="original" class="active">Original</button>
+          <button data-view="overlay">Overlay</button>
+          <button data-view="cutout">Cutout</button>
+        </div>
+        <div class="seg" id="zoomseg">
+          <button data-zoom="fit" class="active">Fit</button>
+          <button data-zoom="1">1:1</button>
+        </div>
+      </div>
+      <div id="stage">
+        <div id="checker"></div>
+        <canvas id="canvas" width="10" height="10"></canvas>
+        <div id="empty">
+          <div class="big">✦</div>
+          <div class="line1">Nothing staged yet</div>
+          <div>press <kbd>Execute Cutout</kbd> to pull what PhotoCraft has open</div>
+        </div>
+        <div id="stage-meta"><span id="meta-size"></span><span id="meta-sel"></span></div>
+      </div>
+    </section>
+
+    <aside id="side">
+      <div id="tab-cutout" hidden>
+        <div class="panel" data-panel="select">
+          <div class="panel-head"><h2>Select</h2><span class="chev">▾</span></div>
+          <div class="panel-body">
+            <div class="label pin" id="srcname">no picture pulled — press Execute Cutout</div>
+            <div class="label pin" id="pinline"></div>
+            <div class="label pin pc" id="pcline">PhotoCraft: checking…</div>
+            <input type="text" id="phrase" placeholder="hair, face, the dress…" autocomplete="off">
+            <div class="chips" id="chips"></div>
+            <div class="field">
+              <span class="label">PhotoCraft gets</span>
+              <select id="applyas">
+                <option value="selection" selected>Selection — marching ants</option>
+                <option value="matte">Cut out — hair matte (real alpha)</option>
+                <option value="mask">Layer mask — background hidden</option>
+                <option value="layer">New layer — hard edge</option>
+              </select>
+            </div>
+            <button class="btn primary" id="findbtn">Execute Cutout</button>
+
+            <details class="adv">
+              <summary>Advanced</summary>
+              <div class="adv-body">
+                <div class="field">
+                  <div class="field-row"><span class="label">Threshold</span><span class="value" id="thv">0.50</span></div>
+                  <input type="range" id="threshold" min="0.10" max="0.90" step="0.01" value="0.50">
+                </div>
+                <div class="field">
+                  <div class="field-row"><span class="label">Refine</span><span class="value" id="rfv">2</span></div>
+                  <input type="range" id="refine" min="0" max="4" step="1" value="2">
+                </div>
+                <div class="field-row">
+                  <input type="checkbox" id="invert">
+                  <span class="label" style="text-transform:none">Invert — keep everything else</span>
+                </div>
+                <div class="field-row" id="refinerow">
+                  <input type="checkbox" id="hairrefine">
+                  <span class="label" style="text-transform:none">PhotoCraft Refine Edge (mask mode only)</span>
+                </div>
+                <div class="field" id="hairfield">
+                  <div class="field-row"><span class="label">Hair radius</span><span class="value" id="hrv">6 px</span></div>
+                  <input type="range" id="hairradius" min="1" max="20" step="1" value="6">
+                </div>
+                <div class="field">
+                  <div class="field-row"><span class="label">Feather</span><span class="value" id="ftv">1.0 px</span></div>
+                  <input type="range" id="feather" min="0" max="8" step="0.5" value="1">
+                </div>
+                <div class="field">
+                  <span class="label">Background</span>
+                  <select id="bgtype">
+                    <option value="transparent">Transparent</option>
+                    <option value="solid">Solid colour</option>
+                    <option value="gradient">Gradient</option>
+                  </select>
+                </div>
+                <div class="field-row" id="bgtwo" style="display:none">
+                  <input type="color" id="bgc1" value="#101820" style="width:100%;height:32px;background:none;border:1px solid var(--border);border-radius:8px">
+                  <input type="color" id="bgc2" value="#f0f4ff" style="width:100%;height:32px;background:none;border:1px solid var(--border);border-radius:8px">
+                </div>
+                <button class="btn ghost" id="pcfile" disabled>Export files — cut-out, mask, outline</button>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+
+      <!-- Generate: the image engine, embedded. Its finished renders are announced to this page and
+           opened in PhotoCraft straight away — the whole point of having them in the same place. -->
+      <div id="tab-generate">
+        <div id="genframe-wrap">
+          <iframe id="genframe" title="Image engine" referrerpolicy="no-referrer"
+              allow="clipboard-read; clipboard-write"></iframe>
+        </div>
+        <!-- Under the engine, where the Generate button is: what happens to what it makes. -->
+        <div class="genbar">
+          <div class="field">
+            <span class="label">Generated images go to</span>
+            <select id="aimode">
+              <option value="document" selected>PhotoCraft — as a new document</option>
+              <option value="layer">PhotoCraft — as a new layer</option>
+            </select>
+          </div>
+          <div class="label pin" id="genline">engine: checking…</div>
+        </div>
+      </div>
+
+      <!-- The log is the bottom of the app: everything since it started, newest first, never
+           truncated — the pane scrolls. The bar above it repeats the newest line so a failure is
+           visible even with the pane folded, and the Log button still folds it. -->
+      <div id="logdock">
+        <div id="logbar">
+          <span id="loglast" class="line">Ready.</span>
+          <button type="button" id="btnLog" class="logbtn" aria-pressed="true"
+                  aria-controls="status" title="The generation log is showing — click to hide it">Log</button>
+        </div>
+        <div id="status">
+          <div class="line">Ready.</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+<script src="/static/app.js?v=31"></script>
+</body>
+</html>

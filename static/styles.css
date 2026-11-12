@@ -1,0 +1,553 @@
+/* ============================================================
+   Cutout Studio — one look: a pane of PhotoCraft.
+
+   There is no theme picker and no second palette: the token block below (further down) carries the
+   values sampled from the editor, and `data-theme="photocraft"` on <html> is only documentation of
+   that. The four neon themes this sheet used to ship with are gone with the picker.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* The editor's scrollbars: a thin thumb in the strip grey, no arrows, no track chrome. Panes that
+   ask for `scrollbar-width: none` keep hiding theirs. */
+* { scrollbar-width: thin; scrollbar-color: #6d6d6d #343434; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #343434; }
+::-webkit-scrollbar-thumb { background: #6d6d6d; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #8a8a8a; }
+::-webkit-scrollbar-corner { background: #343434; }
+
+html, body {
+  height: 100%;
+  background: var(--bg-0);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 17px;
+  line-height: 1.45;
+  overflow: hidden;
+}
+
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ---------------------------------------------------------- topbar */
+#topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 0 12px; height: 34px;
+  background: var(--bg-1); border-bottom: 1px solid var(--border);
+  flex-wrap: nowrap; flex-shrink: 0;
+}
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand-text {
+  font-size: 13px; font-weight: 600; letter-spacing: 0; text-transform: none;
+}
+.brand-text em { color: var(--accent); font-style: normal; }
+.brand-sub { font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 0; }
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+/* ---------------------------------------------------------- layout */
+#main { display: flex; flex: 1; min-height: 0; }
+
+#stage-wrap {
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
+  padding: 14px 16px; gap: 10px;
+}
+#stage-bar { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.seg {
+  display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 999px;
+  overflow: hidden; background: var(--bg-card);
+}
+.seg button {
+  border: 0; background: transparent; color: var(--muted); cursor: pointer;
+  font-family: var(--font-display); font-size: 12px; font-weight: 500;
+  padding: 0 12px; height: 24px; letter-spacing: 0; text-transform: none;
+  transition: var(--transition);
+}
+.seg button:hover { color: var(--text); }
+.seg button.active { background: var(--accent-bg); color: var(--accent); }
+.seg button:disabled { opacity: 0.35; cursor: default; }
+
+#stage {
+  position: relative; flex: 1; min-height: 0; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--bg-card);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+#stage.drag { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg) inset; }
+#checker {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(45deg, rgba(255,255,255,0.09) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255,255,255,0.09) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.09) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.09) 75%);
+  background-size: 22px 22px;
+  background-position: 0 0, 0 11px, 11px -11px, -11px 0;
+  opacity: 0; transition: opacity var(--transition);
+}
+#stage.cutout #checker { opacity: 1; }
+#canvas { position: relative; max-width: 100%; max-height: 100%; display: block; }
+#stage.cutout #canvas { filter: drop-shadow(0 10px 30px rgba(0,0,0,0.45)); }
+#empty {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 6px; text-align: center;
+  color: var(--muted); pointer-events: none; padding: 20px;
+}
+#empty .big { font-size: 34px; opacity: 0.5; }
+#empty .line1 { font-size: 17px; font-weight: 600; color: var(--text); }
+#empty kbd {
+  font-family: var(--font-mono); font-size: 12px; padding: 1px 6px;
+  border: 1px solid var(--border); border-radius: 5px; background: var(--bg-1);
+}
+#stage-meta {
+  position: absolute; left: 12px; bottom: 10px; display: flex; gap: 8px;
+  font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+}
+#stage-meta span { background: rgba(0,0,0,0.35); padding: 2px 7px; border-radius: 6px; }
+
+/* ---------------------------------------------------------- sidebar */
+#side {
+  width: 372px; flex-shrink: 0; border-left: 1px solid var(--border);
+  background: var(--bg-1); display: flex; flex-direction: column;
+  overflow-y: auto; scrollbar-width: none;
+}
+#side::-webkit-scrollbar { display: none; }
+
+/* ---------------------------------------------------------- compact (no preview)
+   The picture lives in PhotoCraft; this app is the control panel. Without the stage the
+   panels get the whole window and lay out in columns. */
+.tbtn {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.4px;
+  padding: 5px 11px; border-radius: 999px; cursor: pointer;
+  background: transparent; color: var(--muted); border: 1px solid var(--border);
+  transition: var(--transition);
+}
+.tbtn:hover { color: var(--accent); border-color: var(--accent); }
+.tbtn.on { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
+/* the one toolbar press that does something to the picture itself, not to this panel's state */
+.tbtn.primary { color: var(--accent); border-color: var(--accent); }
+.tbtn.primary:hover { background: var(--accent-bg); }
+
+body.compact #stage-wrap { display: none; }
+body.compact #app { max-width: 460px; margin: 0 auto; }
+/* Frameless column: the split wrapper strips the window decoration, so this strip IS the top of the
+   window and its colour is the same as the editor's own — which is the whole point of it. Two
+   consequences to keep: the strip is the only place the window can be dragged from, and the
+   title-bar X is gone, so #winclose stands in for it. Both appear only when frameless, so an
+   ordinary browser tab on this page is unchanged. */
+.wintitle {
+  display: none; font-family: var(--font-mono); font-size: 11px; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  /* it now owns the room the engine badge used to take, so it takes the row's spare width; the three
+     buttons on the right are what give way on a narrow window */
+  flex: 1 1 auto; min-width: 0;
+}
+body.frameless .wintitle { display: block; }
+body.frameless .brand-sub { display: none; }   /* the name replaces it; there is no room for both */
+body.frameless #topbar { -webkit-app-region: drag; user-select: none; }
+body.frameless #topbar .tbtn { -webkit-app-region: no-drag; }
+#winclose { display: none; padding: 0 8px; }
+body.frameless #winclose { display: block; }
+#winclose:hover { color: var(--text); border-color: var(--pink); }
+/* The column IS the window: a chrome strip, one tab strip, then docked panes that run edge to edge
+   the way the editor's own docks do — no floating cards, no dead space, and the same width on
+   every tab. */
+body.compact #main { flex: 1 1 auto; min-height: 0; }
+body.compact #topbar {
+  flex-wrap: wrap; row-gap: 5px;
+  margin: 0; padding: 6px 10px;
+  border: 0; border-bottom: 1px solid var(--border); border-radius: 0;
+  background: var(--bg-card);
+}
+/* the strip is one row: context, engine state, actions — the app's name is on the window title */
+body.compact #topbar { flex-wrap: nowrap; gap: 8px; padding: 0 10px; height: 34px; }
+body.compact .brand-sub {
+  flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+/* flex-shrink 1, not 0: with three buttons in the strip the row is wider than a 320 px window, so the
+   actions must be able to give way — with shrink 0 the whole row runs off the right edge. */
+body.compact .topbar-actions { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; gap: 6px; }
+/* One narrow column, not a grid: the window is meant to sit beside PhotoCraft, so it has to work
+   at ~320-430 px wide and never scroll sideways. */
+body.compact #side {
+  width: 100%; max-width: none; margin: 0;
+  flex: 1 1 auto; min-height: 0; border-left: none;
+  background: var(--bg-card);
+  display: flex; flex-direction: column; gap: 0;
+  padding: 0; overflow-y: auto;
+}
+body.compact #side .panel {
+  border: 0; border-bottom: 1px solid var(--border); border-radius: 0;
+  background: var(--bg-card); overflow: visible; flex: 0 0 auto;
+}
+/* the log dock lives outside the scrolling column here (see setPreview in app.js) and reads as the
+   editor's status bar: dark strip, small mono text, pinned to the bottom of the window */
+body.compact #app > #logdock {
+  flex: 0 0 auto; width: auto; max-width: none;
+  margin: 0; border: 0; border-top: 1px solid var(--border); border-radius: 0;
+  background: var(--bg-0);
+}
+body.compact #app > #logdock #status { max-height: clamp(160px, 30vh, 380px); overflow-y: auto; }
+body.compact .panel-body { gap: 7px; }
+body.compact .chips { gap: 4px; }
+body.compact .chip { padding: 2px 8px; font-size: 12px; }
+body.compact .field-row { gap: 7px; }
+body.compact .btn { padding-bottom: 5px; padding-top: 5px; }
+
+/* Very narrow (a column beside an editor). Nothing may overflow sideways and the picture preview
+   stops being useful below ~480 px, so it gets out of the way. */
+@media (max-width: 480px) {
+  html, body { font-size: 15px; }
+  /* the topbar wraps to two rows instead of pushing the window wider than the screen */
+  #topbar { padding: 5px 10px; gap: 6px; flex-wrap: nowrap; }
+  .brand-sub { display: none; }
+  #previewbtn { display: none; }
+  .topbar-actions { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; gap: 6px; }
+  body.compact #side { padding: 8px 12px; gap: 8px; }
+  .panel-head { padding: 8px 10px; }
+  .panel-body { padding: 2px 10px 10px; gap: 8px; }
+  input[type="text"], select { font-size: 14px; padding: 7px 9px; }
+  .btn { font-size: 13px; padding: 8px 10px; }
+  .btn-row { flex-wrap: wrap; }
+  .chip { font-size: 12px; padding: 3px 8px; }
+  #status { max-height: clamp(150px, 28vh, 360px); overflow-y: auto; }
+}
+
+.panel { border-bottom: 1px solid var(--border); }
+.panel-head {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 9px 14px; user-select: none;
+}
+.panel-head h2 {
+  font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none;
+  color: var(--text);
+}
+.panel-head .chev { margin-left: auto; color: var(--muted); font-size: 11px; transition: var(--transition); }
+.panel.closed .chev { transform: rotate(-90deg); }
+.panel-body { padding: 2px 14px 13px; display: flex; flex-direction: column; gap: 9px; }
+.panel.closed .panel-body { display: none; }
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field-row { display: flex; align-items: center; gap: 8px; }
+.label {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.3px;
+  text-transform: uppercase; color: var(--muted);
+}
+/* "Source: <document pulled out of PhotoCraft>" — a line, not a control. Clamped to two lines so a
+   60-character document name cannot fill the column. */
+.label.pin {
+  text-transform: none; line-height: 1.35; word-break: break-word;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.label.pin:empty { display: none; }
+.label.pin.pc { color: var(--text); font-size: 11.5px; }
+.value { font-family: var(--font-mono); font-size: 11px; color: var(--text); margin-left: auto; }
+
+input[type="text"], select {
+  width: 100%; padding: 8px 10px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--bg-card); color: var(--text);
+  font-family: var(--font-display); font-size: 15px; outline: none;
+  transition: var(--transition);
+}
+input[type="text"]:focus, select:focus { border-color: var(--accent); }
+input[type="text"]::placeholder { color: var(--muted); }
+select { cursor: pointer; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip {
+  border: 1px solid var(--border); background: var(--bg-card); color: var(--muted);
+  border-radius: 3px; padding: 3px 8px; font-size: 11px; cursor: pointer;
+  font-family: var(--font-display); transition: var(--transition);
+}
+.chip:hover { color: var(--text); border-color: var(--accent); }
+.chip.on { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
+
+input[type="range"] {
+  -webkit-appearance: none; width: 100%; height: 4px; border-radius: 3px;
+  background: var(--border); outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%;
+  background: var(--accent); cursor: pointer;
+}
+input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+
+.btn {
+  border: 1px solid var(--border); background: var(--bg-card); color: var(--text);
+  border-radius: var(--radius-sm); padding: 9px 12px; cursor: pointer;
+  font-family: var(--font-display); font-size: 14px; font-weight: 600;
+  letter-spacing: 0.4px; transition: var(--transition); width: 100%;
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.primary {
+  background: var(--accent-bg); border-color: var(--accent); color: var(--accent);
+}
+.btn.primary:hover:not(:disabled) { background: var(--accent); color: var(--bg-0); }
+.btn.ghost { background: transparent; }
+.btn-row { display: flex; gap: 7px; }
+.btn-row .btn { flex: 1; }
+
+/* Advanced: the knobs that are not part of typing a phrase and pressing Find. Closed by default so
+   the column reads as one line of intent, not a control panel of equal-looking buttons. */
+details.adv { border-top: 1px solid var(--border); padding-top: 9px; margin-top: 1px; }
+details.adv > summary {
+  display: flex; align-items: center; gap: 7px; cursor: pointer; list-style: none;
+  font-family: var(--font-display); font-size: 11px; letter-spacing: 0; min-height: 24px;
+  text-transform: none; color: var(--muted); transition: var(--transition);
+}
+details.adv > summary::-webkit-details-marker { display: none; }
+details.adv > summary::before { content: '▸'; font-size: 10px; }
+details.adv[open] > summary::before { content: '▾'; }
+details.adv > summary:hover { color: var(--accent); }
+.adv-body { display: flex; flex-direction: column; gap: 8px; padding-top: 9px; }
+
+/* ---- log dock: newest line always visible, the detailed log folded behind the Log button ---- */
+#logdock { display: flex; flex-direction: column; flex: 0 0 auto; }
+#logbar {
+  display: flex; align-items: center; gap: 8px; height: 26px;
+  border-top: 1px solid var(--border); padding: 0 10px;
+  font-family: var(--font-mono); font-size: 10.5px; background: var(--bg-0);
+}
+#loglast {
+  flex: 1 1 auto; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--muted); line-height: 1.4;
+}
+#loglast.ok { color: var(--green); }
+#loglast.bad { color: var(--pink); }
+#loglast.warn { color: var(--accent-hover); }
+#loglast .meta { color: var(--text); }
+.logbtn {
+  flex: none; font-family: var(--font-display); font-size: 10.5px; line-height: 1;
+  padding: 0 8px; height: 20px; border-radius: 3px; cursor: pointer;
+  background: var(--bg-1); color: var(--muted); border: 1px solid var(--border);
+}
+.logbtn:hover { color: var(--text); }
+.logbtn.on { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+.logbtn.flagged { color: var(--pink); border-color: var(--pink); }
+
+/* The session record: a scrollable pane, not a ticker. Lines wrap (nothing is cut off with an
+   ellipsis) and the pane's own scrollbar is deliberately visible — it is the one place in this app
+   where you are meant to scroll back through history. */
+#status {
+  border-top: 1px solid var(--border); padding: 9px 14px;
+  max-height: clamp(150px, 26vh, 420px); overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: #4a4a4a transparent;
+  font-family: var(--font-mono); font-size: 11.5px; line-height: 1.5;
+  color: var(--muted); display: flex; flex-direction: column; gap: 3px;
+}
+#status::-webkit-scrollbar { width: 9px; }
+#status::-webkit-scrollbar-track { background: transparent; }
+#status::-webkit-scrollbar-thumb { background: #4a4a4a; border-radius: 5px; }
+#status::-webkit-scrollbar-thumb:hover { background: #5f5f5f; }
+#status .line { white-space: pre-wrap; overflow-wrap: anywhere; }
+#status[hidden] { display: none; }
+#status .ok { color: var(--green); }
+#status .bad { color: var(--pink); }
+#status .meta { color: var(--text); }
+#status .warn { color: var(--accent-hover); }
+
+
+/* ============================================================================================
+   PhotoCraft theme — sampled from the editor itself, not guessed. Measured on a live capture:
+   window chrome and dock bodies #535353, tab strips and panel headers #4a4a4a (the active tab takes
+   the panel's own #535353), input wells #454545 on #343434 seams, canvas surround #282828, one blue
+   accent #378ef0, text #eeeeee over muted #a0a0a0. Buttons are pills, every other control is square
+   with a 3 px corner; nothing glows and nothing is translucent. This is the only theme: the app is a
+   pane of PhotoCraft, so it does not offer a choice of look.
+   ============================================================================================ */
+:root,
+[data-theme="photocraft"] {
+  --radius: 3px;
+  --radius-sm: 3px;
+  --transition: 0.1s linear;
+  --font-display: "Inter", "Noto Sans", "DejaVu Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "DejaVu Sans Mono", monospace;
+  --bg-0: #282828;
+  --bg-1: #4a4a4a;
+  --bg-card: #535353;
+  --bg-input: #454545;
+  --text: #eeeeee;
+  --muted: #a0a0a0;
+  --accent: #378ef0;
+  --accent-hover: #5aa4f6;
+  --accent-bg: rgba(55, 142, 240, 0.18);
+  --pink: #e06c6c;
+  --green: #7fbf6a;
+  --border: #343434;
+  --edge: #6d6d6d;
+}
+
+[data-theme="photocraft"] body { background: var(--bg-0); font-size: 12.5px; }
+
+/* a pose dragged in from the Pose Library (:7888) — the whole dock is the drop target */
+body.pose-drop { outline: 2px dashed var(--accent); outline-offset: -4px; }
+
+/* window chrome: the editor's menu/title strip — flat, one seam, no wordmark theatre */
+[data-theme="photocraft"] #topbar { background: var(--bg-card); border-bottom: 1px solid var(--border); }
+/* Two hairlines, at the editor's heights. PhotoCraft draws one under its menu strip and one under its
+   document tabs, and in the split pair they read as single lines running across the seam between the
+   two windows, so both the offsets and the greys are the editor's measured ones: its first rule
+   occupies 30.5-31.5 px (#3b3b3b), the second 66.5-68 px (#333333). 1.5 px is deliberate — the editor
+   renders them ~1.25 px thick at its 0.5 px offset, and a plain 1 px CSS border lands as one blended
+   device row, visibly lighter and thinner beside it. Both are overridden inside `body.compact`, which
+   is why the selector carries it — `body.compact #topbar` is more specific than `[data-theme] #topbar`. */
+[data-theme="photocraft"] body.compact #topbar { height: 32px; border-bottom: 1.5px solid #3b3b3b; }
+[data-theme="photocraft"] #tabs { height: 36px; border-bottom: 1.5px solid #333333; }
+[data-theme="photocraft"] .brand { gap: 8px; }
+[data-theme="photocraft"] .brand-text {
+  font-size: 13px; font-weight: 600; letter-spacing: 0; text-transform: none;
+}
+[data-theme="photocraft"] .brand-text em { color: var(--muted); font-style: normal; font-weight: 400; }
+[data-theme="photocraft"] .brand-sub { font-size: 11px; color: var(--muted); }
+
+/* flat grey controls with a 1 px lighter edge — the editor's toolbar buttons */
+[data-theme="photocraft"] .tbtn {
+  border-radius: 3px; border: 1px solid var(--edge); background: var(--bg-1);
+  color: var(--text); font-family: var(--font-display); font-size: 11.5px;
+  padding: 0 10px; height: 26px; text-transform: none; letter-spacing: 0;
+}
+[data-theme="photocraft"] .tbtn:hover { background: #5a5a5a; color: #ffffff; }
+[data-theme="photocraft"] .tbtn.on { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+/* Quick Export is the editor's own blue: a toolbar press that changes the picture on disk */
+[data-theme="photocraft"] .tbtn.primary { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+[data-theme="photocraft"] .tbtn.primary:hover { background: var(--accent-hover); color: #ffffff; }
+[data-theme="photocraft"] .tbtn.primary:disabled { background: var(--bg-1); border-color: var(--edge); color: var(--muted); cursor: default; }
+
+/* panels: docked panes — square, edge to edge, separated by a single seam */
+[data-theme="photocraft"] .panel,
+[data-theme="photocraft"] #status { background: var(--bg-card); box-shadow: none; }
+[data-theme="photocraft"] .panel-head {
+  background: var(--bg-1); border-bottom: 1px solid var(--border); padding: 0 10px; height: 28px;
+}
+[data-theme="photocraft"] .panel-head h2 {
+  font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--text);
+}
+[data-theme="photocraft"] .panel-head .chev { font-size: 10px; color: var(--muted); }
+[data-theme="photocraft"] .panel-body { padding: 8px 10px 10px; gap: 8px; }
+
+[data-theme="photocraft"] .label {
+  font-family: var(--font-display); font-size: 11px; letter-spacing: 0;
+  text-transform: none; color: var(--muted);
+}
+[data-theme="photocraft"] .label.pin.pc { color: var(--text); font-size: 11.5px; }
+[data-theme="photocraft"] .value { font-family: var(--font-mono); font-size: 11px; color: var(--text); }
+
+/* input wells: #454545 on a #343434 seam, 26 px tall like the editor's numeric fields */
+[data-theme="photocraft"] input[type="text"],
+[data-theme="photocraft"] select {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: 3px;
+  color: var(--text); font-family: var(--font-display); font-size: 12px;
+  padding: 0 6px; height: 26px;
+}
+[data-theme="photocraft"] input[type="text"]:focus,
+[data-theme="photocraft"] select:focus { border-color: var(--accent); outline: none; }
+[data-theme="photocraft"] input[type="text"]::placeholder { color: #8c8c8c; }
+
+/* the phrase chips are the editor's own flat toggles */
+[data-theme="photocraft"] .chip {
+  border-radius: 3px; border: 1px solid var(--border); background: var(--bg-input);
+  color: var(--muted); font-size: 11px; padding: 0 8px; height: 22px; letter-spacing: 0;
+}
+[data-theme="photocraft"] .chip:hover { color: var(--text); border-color: var(--edge); }
+[data-theme="photocraft"] .chip.on { color: #ffffff; border-color: var(--accent); background: var(--accent); }
+
+/* buttons: PhotoCraft's are pills. Primary takes the accent fill, ghost keeps a grey edge. */
+[data-theme="photocraft"] .btn {
+  border-radius: 999px; border: 1px solid var(--edge); background: var(--bg-1);
+  color: var(--text); font-family: var(--font-display); font-size: 12px; font-weight: 500;
+  letter-spacing: 0; text-transform: none; padding: 0 12px; min-height: 26px; box-shadow: none;
+}
+[data-theme="photocraft"] .btn:hover:not(:disabled) {
+  background: #5a5a5a; color: #ffffff; border-color: #8a8a8a;
+}
+[data-theme="photocraft"] .btn.primary {
+  background: var(--accent); border-color: var(--accent); color: #ffffff;
+  font-weight: 600; font-size: 12.5px; padding: 0 12px; min-height: 26px;
+}
+[data-theme="photocraft"] .btn.primary:hover:not(:disabled) {
+  background: var(--accent-hover); border-color: var(--accent-hover); color: #ffffff;
+}
+[data-theme="photocraft"] .btn.ghost { background: transparent; border-color: var(--edge); color: var(--text); }
+[data-theme="photocraft"] .btn.ghost:hover:not(:disabled) { background: var(--bg-1); }
+
+[data-theme="photocraft"] input[type="range"] { height: 4px; border-radius: 2px; background: #343434; }
+[data-theme="photocraft"] input[type="range"]::-webkit-slider-thumb {
+  width: 11px; height: 11px; border-radius: 50%; background: #c8c8c8;
+  box-shadow: none; border: 1px solid #2b2b2b;
+}
+[data-theme="photocraft"] input[type="checkbox"] { accent-color: var(--accent); }
+
+[data-theme="photocraft"] details.adv { border-top: 1px solid var(--border); padding-top: 7px; }
+[data-theme="photocraft"] details.adv > summary {
+  font-family: var(--font-display); text-transform: none; letter-spacing: 0; font-size: 11.5px;
+  color: var(--muted);
+}
+[data-theme="photocraft"] details.adv > summary:hover { color: var(--text); }
+[data-theme="photocraft"] #logbar { background: var(--bg-1); }
+[data-theme="photocraft"] #status { border-top: 0; background: var(--bg-card); }
+[data-theme="photocraft"] #loglast { font-size: 10.5px; }
+[data-theme="photocraft"] #status .line {
+  font-family: var(--font-mono); font-size: 10.5px; color: var(--muted);
+}
+[data-theme="photocraft"] #status .ok { color: var(--green); }
+[data-theme="photocraft"] #status .meta { color: var(--text); }
+[data-theme="photocraft"] #status .bad { color: var(--pink); }
+[data-theme="photocraft"] #status .warn { color: #e0b25a; }
+
+/* ------------------------------------------------------------------ tab strip (Cutout / Generate)
+   The editor's dock tabs: a #4a4a4a strip of equal-width labels, the active one taking the panel's
+   own body colour and full-strength text. Equal widths, so neither tab is wider than the other. */
+#tabs {
+  display: flex; align-items: stretch; gap: 0; flex-shrink: 0;
+  background: var(--bg-1); border-bottom: 1px solid var(--border); padding: 0; height: 28px;
+}
+.tab {
+  flex: 1 1 0; min-width: 0;
+  appearance: none; background: none; border: 0; border-top: 1px solid transparent;
+  color: var(--muted); font-family: var(--font-display); font-size: 12px; font-weight: 500;
+  letter-spacing: 0; padding: 0 8px; cursor: pointer; transition: color var(--transition);
+}
+.tab:hover { color: var(--text); }
+.tab.active {
+  color: var(--text); font-weight: 600;
+  background: var(--bg-card); border-top-color: var(--edge);
+}
+
+/* ------------------------------------------------------------------- Generate pane
+   The engine is embedded at the column's own width — the page does not widen for this tab. With the
+   preview open it takes the stage's room instead, but the window is the same width on both tabs. */
+#tab-cutout, #tab-generate { display: flex; flex-direction: column; gap: 0; }
+#tab-generate[hidden], #tab-cutout[hidden] { display: none; }
+#tab-generate { flex: 1 1 auto; min-height: 0; }
+.genbar {
+  flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 10px; background: var(--bg-card); border-bottom: 1px solid var(--border);
+}
+#genframe-wrap {
+  flex: 1 1 auto; display: flex; border: 0;
+  background: var(--bg-0); overflow: hidden; min-height: 55vh;
+}
+#genframe { flex: 1; width: 100%; min-height: 55vh; border: 0; background: var(--bg-0); }
+
+body[data-tab="generate"] #stage-wrap { display: none; }
+body[data-tab="generate"] #side { width: 100%; border-left: 0; }
+
+/* ---------------------------------------------------------------- preview mode (the stage)
+   The stage is the editor's canvas: #282828 surround, a 1 px seam, and the same flat segmented
+   controls as the rest of the chrome — not the old neon pills. */
+[data-theme="photocraft"] #side { background: var(--bg-card); }
+[data-theme="photocraft"] #stage { background: var(--bg-0); border: 1px solid var(--border); }
+[data-theme="photocraft"] #stage.drag { border-color: var(--accent); box-shadow: none; }
+[data-theme="photocraft"] .seg { border-radius: 3px; background: var(--bg-1); border: 1px solid var(--border); }
+[data-theme="photocraft"] .seg button {
+  border-radius: 0; font-size: 11.5px; font-weight: 500; text-transform: none; letter-spacing: 0;
+  padding: 4px 10px; color: var(--muted);
+}
+[data-theme="photocraft"] .seg button:hover { color: var(--text); }
+[data-theme="photocraft"] .seg button.active { background: var(--accent); color: #ffffff; }
+[data-theme="photocraft"] #empty .big { color: var(--muted); opacity: 0.6; }
+[data-theme="photocraft"] #empty kbd { background: var(--bg-input); border: 1px solid var(--border); border-radius: 3px; }
+[data-theme="photocraft"] #stage-meta span { background: rgba(0, 0, 0, 0.45); border-radius: 2px; }

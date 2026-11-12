@@ -1,0 +1,22 @@
+# added by auto-repo-new-apps.sh
+__pycache__/
+*.pyc
+*.pid
+*.log
+.venv/
+venv/
+node_modules/
+.env
+.env.*
+*.pem
+*.key
+id_rsa*
+*credential*.json
+*secret*.json
+token*.txt
+*api*key*.txt
+!.env.example
+
+# personal state — the panel's own config and every cut-out it ever made
+data/
+config.json
